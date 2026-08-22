@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SayHi Ramen Bar - Comenzi Ospătar</title>
+  
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316', // Vibrant Ramen Orange
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+              950: '#431407',
+            },
+            ramen: {
+              dark: '#0f172a',
+              card: '#1e293b',
+              border: '#334155',
+              accent: '#f59e0b',
+              red: '#ef4444',
+              green: '#10b981'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Mobile-first touch improvements & hide scrollbars */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea {
+      user-select: text;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 8px);
+    }
+    /* Pulse animation for active highlights */
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 0.2s ease-in-out;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased font-sans pb-32">
+
+  <!-- ================= TOP HEADER & TABLE SELECTION ================= -->
+  <header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 safe-top shadow-lg">
+    <div class="px-4 py-2.5 max-w-md mx-auto">
+      
+      <!-- Brand & Status & Settings -->
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-md shadow-brand-500/20">
+            <span class="text-base">🍜</span>
+          </div>
+          <div>
+            <h1 class="text-sm font-black tracking-tight text-white flex items-center gap-1.5">
+              SayHi <span class="text-brand-500 font-semibold text-xs uppercase tracking-wider">Ramen Bar</span>
+            </h1>
+            <p id="waiter-badge" class="text-[11px] text-slate-400 font-medium leading-none">Ospătar: Mobil</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <!-- Reset Order Button -->
+          <button id="btn-reset-order" onclick="confirmResetOrder()" title="Curăță Comanda" 
+                  class="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400 hover:bg-slate-700 active:scale-95 transition-all border border-slate-700">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Reset</span>
+          </button>
+          
+          <!-- Config Settings Modal Trigger -->
+          <button onclick="toggleSettingsModal(true)" title="Setări Bot Telegram" 
+                  class="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 active:scale-95 transition-all border border-slate-700">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Selection Input -->
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-brand-400">
+              <i data-lucide="map-pin" class="w-4 h-4"></i>
+            </div>
+            <input type="text" id="table-input" placeholder="Masa / Locația (ex: Masa 3, Bar 2, Terasa 1)"
+                   class="w-full pl-9 pr-8 py-2 bg-slate-800/90 border border-slate-700 rounded-xl text-sm font-semibold text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all shadow-inner">
+            <button id="clear-table-btn" onclick="clearTableInput()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Table Chips -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider pl-0.5">Rapid:</span>
+          <button onclick="setTable('Masa 1')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">M1</button>
+          <button onclick="setTable('Masa 2')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">M2</button>
+          <button onclick="setTable('Masa 3')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">M3</button>
+          <button onclick="setTable('Masa 4')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">M4</button>
+          <button onclick="setTable('Bar 1')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">Bar 1</button>
+          <button onclick="setTable('Bar 2')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">Bar 2</button>
+          <button onclick="setTable('Terasa 1')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">Terasa 1</button>
+          <button onclick="setTable('Terasa 2')" class="table-chip px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium hover:bg-brand-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-slate-700/60">Terasa 2</button>
+          <button onclick="setTable('La Pachet (Takeaway)')" class="table-chip px-2.5 py-1 rounded-lg bg-amber-900/40 text-amber-300 font-medium hover:bg-amber-600 hover:text-white whitespace-nowrap active:scale-95 transition-all border border-amber-700/40">🥡 Pachet</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= LIVE SEARCH BAR ================= -->
+    <div class="px-4 pb-2.5 max-w-md mx-auto">
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </div>
+        <input type="search" id="search-input" placeholder="Caută preparat sau ingredient (ex: creveți, tonkatsu, ou)..."
+               autocomplete="off"
+               class="w-full pl-10 pr-10 py-2.5 bg-slate-800 text-white rounded-xl text-sm placeholder-slate-400 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all shadow-inner">
+        <button id="clear-search-btn" onclick="clearSearch()" 
+                class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white">
+          <i data-lucide="x-circle" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= CATEGORY TABS / CHIPS ================= -->
+    <div id="category-tabs-container" class="px-4 pb-2.5 max-w-md mx-auto border-t border-slate-800/80 pt-2">
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <button onclick="filterCategory('Toate')" data-cat="Toate" 
+                class="cat-tab px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-150 bg-brand-500 text-white shadow-md shadow-brand-500/20">
+          🌟 Toate
+        </button>
+        <button onclick="filterCategory('Ramen & Supe')" data-cat="Ramen & Supe" 
+                class="cat-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🍜 Ramen & Supe
+        </button>
+        <button onclick="filterCategory('Aperitive & Gustări')" data-cat="Aperitive & Gustări" 
+                class="cat-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🥟 Aperitive & Gustări
+        </button>
+        <button onclick="filterCategory('Feluri Principale')" data-cat="Feluri Principale" 
+                class="cat-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🍛 Feluri Principale
+        </button>
+        <button onclick="filterCategory('Deserturi')" data-cat="Deserturi" 
+                class="cat-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🍰 Deserturi
+        </button>
+        <button onclick="filterCategory('Băuturi')" data-cat="Băuturi" 
+                class="cat-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 bg-slate-800 text-slate-300 hover:bg-slate-700">
+          🍹 Băuturi
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT AREA ================= -->
+  <main class="flex-1 max-w-md w-full mx-auto px-4 py-3 space-y-4">
+    
+    <!-- Dynamic Results Header / Active Category Title -->
+    <div class="flex items-center justify-between px-1">
+      <h2 id="section-title" class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+        <span>Toate Preparatele</span>
+        <span id="items-count" class="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">33</span>
+      </h2>
+      <span id="search-indicator" class="hidden text-xs text-amber-400 font-medium animate-pulse flex items-center gap-1">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Rezultate Căutare
+      </span>
+    </div>
+
+    <!-- Menu Items List Grid -->
+    <div id="menu-list" class="space-y-3">
+      <!-- Generated via JS -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-12 px-4">
+      <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400 border border-slate-700">
+        <i data-lucide="search-x" class="w-8 h-8 text-slate-400"></i>
+      </div>
+      <p class="text-base font-semibold text-slate-200">Nu am găsit niciun preparat</p>
+      <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Încearcă să cauți după alt nume de preparat sau alt ingredient.</p>
+      <button onclick="clearSearch()" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl active:scale-95 transition-all">
+        Arată tot meniul
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ================= NOTIFICATION TOAST ================= -->
+  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 pointer-events-none opacity-0 translate-y-[-10px] w-11/12 max-w-xs">
+    <div id="toast-content" class="bg-slate-900/95 border border-brand-500/50 shadow-xl shadow-brand-500/10 backdrop-blur-md text-white text-xs font-medium px-4 py-2.5 rounded-2xl flex items-center justify-center gap-2">
+      <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+      <span id="toast-msg">Produs adăugat!</span>
+    </div>
+  </div>
+
+  <!-- ================= FIXED BOTTOM ACTION BAR ================= -->
+  <div class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 safe-bottom shadow-2xl">
+    <div class="max-w-md mx-auto px-4 py-2.5">
+      <div class="flex items-center gap-3">
+        
+        <!-- Cart Summary / Quick Expand Button -->
+        <button onclick="openCartDrawer()" 
+                class="flex-1 bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-between shadow-lg shadow-brand-600/30 active:scale-[0.98] transition-all">
+          <div class="flex items-center gap-2.5">
+            <div class="relative bg-black/25 px-2.5 py-1 rounded-xl flex items-center gap-1.5">
+              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+              <span id="cart-badge-count" class="text-xs font-black">0</span>
+            </div>
+            <span class="text-sm font-extrabold tracking-wide">Comanda</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span id="cart-total-price" class="text-base font-black text-amber-200">0 MDL</span>
+            <i data-lucide="chevron-up" class="w-4 h-4 opacity-80"></i>
+          </div>
+        </button>
+
+        <!-- Fast Direct Send Button -->
+        <button id="btn-fast-send" onclick="handleDirectSend()" 
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/25 active:scale-[0.98] transition-all shrink-0"
+                title="Trimite direct">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span class="text-xs font-extrabold uppercase">Trimite</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CART / ORDER DRAWER MODAL ================= -->
+  <div id="cart-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none flex flex-col justify-end">
+    <div id="cart-drawer" class="bg-slate-900 border-t border-slate-700 w-full max-w-md mx-auto rounded-t-3xl shadow-2xl flex flex-col max-h-[88vh] transform translate-y-full transition-transform duration-300 ease-out safe-bottom">
+      
+      <!-- Drawer Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center">
+            <i data-lucide="receipt" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-white">Comandă Activă</h3>
+            <p id="drawer-table-name" class="text-xs font-semibold text-brand-400">Masă: Nespecificată</p>
+          </div>
+        </div>
+        
+        <button onclick="closeCartDrawer()" class="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 active:scale-95 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Drawer Order Items Scroll Area -->
+      <div id="cart-items-container" class="flex-1 overflow-y-auto px-4 py-3 space-y-3 no-scrollbar min-h-[160px]">
+        <!-- Cart Items Generated via JS -->
+      </div>
+
+      <!-- Empty Cart in Drawer -->
+      <div id="cart-empty-view" class="hidden text-center py-10 px-4">
+        <div class="w-14 h-14 bg-slate-800/80 rounded-2xl flex items-center justify-center mx-auto mb-2 text-slate-500 border border-slate-700">
+          <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+        </div>
+        <p class="text-sm font-semibold text-slate-300">Comanda este goală</p>
+        <p class="text-xs text-slate-500 mt-0.5">Selectează preparate din meniu pentru a le adăuga aici.</p>
+      </div>
+
+      <!-- Drawer Footer & Send Button -->
+      <div class="p-4 bg-slate-900/90 border-t border-slate-800 space-y-3 shrink-0">
+        
+        <!-- General Order Note (Optional) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="general-note" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Notă Generală Comandă (Opțional)</label>
+            <span class="text-[10px] text-slate-500">ex: Client grăbit / Plată card</span>
+          </div>
+          <input type="text" id="general-note" placeholder="ex: Toate felurile odată / Tacâmuri x3 / Sos extra"
+                 class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+
+        <!-- Price Summary -->
+        <div class="bg-slate-800/70 p-3 rounded-2xl border border-slate-700/60 space-y-1.5">
+          <div class="flex justify-between text-xs text-slate-400">
+            <span>Număr preparate:</span>
+            <span id="drawer-total-qty" class="font-bold text-slate-200">0 buc</span>
+          </div>
+          <div class="flex justify-between items-center pt-1.5 border-t border-slate-700/50">
+            <span class="text-sm font-bold text-white">TOTAL GENERAL:</span>
+            <span id="drawer-total-price" class="text-xl font-black text-brand-400">0 MDL</span>
+          </div>
+        </div>
+
+        <!-- Big Send Button in Drawer -->
+        <button id="btn-submit-order" onclick="submitOrderToTelegram()" 
+                class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 active:scale-[0.98] transition-all text-sm tracking-wide">
+          <i data-lucide="send" class="w-5 h-5"></i>
+          <span>Trimite Comanda pe Telegram 🚀</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= SETTINGS / TELEGRAM CONFIG MODAL ================= -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="bot" class="w-5 h-5 text-brand-400"></i>
+          <h3 class="font-bold text-white text-base">Configurare Telegram Bot</h3>
+        </div>
+        <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-300">Configurează botul și chat ID-ul unde se vor transmite comenzile în timp real.</p>
+        
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">TELEGRAM BOT TOKEN</label>
+          <input type="text" id="cfg-bot-token" placeholder="ex: 123456789:ABCdefGhIJKlmNoPQRstuVWXyz"
+                 class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono text-[11px] focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">CHAT ID / GRUP ID</label>
+          <input type="text" id="cfg-chat-id" placeholder="ex: -1001234567890 sau 12345678"
+                 class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <span class="text-[10px] text-slate-400 mt-1 block">ID-ul grupului de bucătărie sau al chat-ului tău.</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Nume Ospătar (Opțional)</label>
+          <input type="text" id="cfg-waiter-name" placeholder="ex: Victor / Masa 1-6"
+                 class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button onclick="saveTelegramSettings()" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-bold py-2.5 rounded-xl text-xs active:scale-95 transition-all">
+          Salvează Setările
+        </button>
+        <button onclick="toggleSettingsModal(false)" class="px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-2.5 rounded-xl text-xs">
+          Închide
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SUCCESS CONFIRMATION MODAL ================= -->
+  <div id="success-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md transition-opacity duration-300 opacity-0 pointer-events-none flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30">
+        <i data-lucide="check-check" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-black text-white">Comandă Trimisă cu Succes! 🚀</h3>
+        <p id="success-summary" class="text-xs text-slate-300 mt-1">Comanda pentru Masa X a fost expediată către bucătărie.</p>
+      </div>
+      <div id="success-details-box" class="bg-slate-800/80 p-3 rounded-2xl text-left text-xs space-y-1 font-mono text-slate-300 max-h-40 overflow-y-auto border border-slate-700">
+      </div>
+      <div class="pt-2">
+        <button onclick="dismissSuccessModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm active:scale-95 transition-all">
+          Gata! Comandă Nouă ✨
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT APPLICATION LOGIC ================= -->
+  <script>
+    /* =========================================================
+       1. TELEGRAM BOT CONFIGURATION
+       Poți seta direct aici valorile implicite:
+       ========================================================= */
+    const BOT_TOKEN = "PUNE_AICI_BOT_TOKEN";
+    const CHAT_ID = "PUNE_AICI_CHAT_ID";
+
+    let activeBotToken = localStorage.getItem("sayhi_bot_token") || BOT_TOKEN;
+    let activeChatId = localStorage.getItem("sayhi_chat_id") || CHAT_ID;
+    let WAITER_NAME = localStorage.getItem("sayhi_waiter_name") || "";
+
+    /* =========================================================
+       2. DATABASE MENIU (SayHi Ramen Bar Chișinău)
+       ========================================================= */
+    const menu = [
+      // RAMEN & SUPE
+      { id: 1, category: "Ramen & Supe", name: "Hokkaido 2.0", price: 200, ingredients: "Supă Shoyu Torigara cu bisque și ulei de creveți, tăiței cu ou, creveți la grătar, ciuperci enoki în sos thai-mix, ou marinat, coriandru, ceapă verde, nori, susan" },
+      { id: 2, category: "Ramen & Supe", name: "Kasaoki", price: 180, ingredients: "Bulion de pui Shoyu Torigara cu soia, pui pane, tăiței cu ou, ou murat, daikon, morcovi, ceapă verde, chili, nori, susan" },
+      { id: 3, category: "Ramen & Supe", name: "Naruto Ramen (Ichiraku)", price: 240, ingredients: "Supă pe bază de porc și vită, porc cha-shu, narutomaki, bambus murat, ou murat, tăiței, ceapă verde, nori" },
+      { id: 4, category: "Ramen & Supe", name: "Tantanmen", price: 230, ingredients: "Bulion picant de porc și vită cu susan și unt de arahide, caju, lapte de soia, carne vită tocată, tăiței, ulei chili, ou murat, nori" },
+      { id: 5, category: "Ramen & Supe", name: "Okinawa Ramen", price: 250, ingredients: "Supă porc-vită, coaste de porc teriyaki, tăiței, kimchi, ceapă verde, ulei boia afumată" },
+      { id: 6, category: "Ramen & Supe", name: "Coco Miso Ramen", price: 170, ingredients: "Lapte de cocos, pastă miso, gochujang, tăiței de orez, tofu murat, edamame, porumb, shiitake, vlăstari de mazăre, coriandru" },
+      { id: 7, category: "Ramen & Supe", name: "Laksa Ramen", price: 200, ingredients: "Supă picantă cu lapte de cocos și bisque de creveți, tăiței cu ou, creveți, pui, ou marinat, tofu" },
+      { id: 8, category: "Ramen & Supe", name: "Becon Chizu", price: 170, ingredients: "Bulion de brânză cu tăiței cu ou, bacon, ou marinat, chipsuri de brânză, sos usturoi negru" },
+
+      // APERITIVE & GUSTĂRI
+      { id: 9, category: "Aperitive & Gustări", name: "Creveți Panko", price: 170, ingredients: "Creveți crocanți panko, avocado, ceapă marinată, susan, sos Sweet Chili și sos Aioli" },
+      { id: 10, category: "Aperitive & Gustări", name: "Ebi Sando", price: 140, ingredients: "Sandwich pe pâine cu lapte, creveți trași la tigaie, castravete proaspăt, varză kimchi, sos aioli" },
+      { id: 11, category: "Aperitive & Gustări", name: "Big Katsu-Sando 2.0", price: 165, ingredients: "Pâine cu lapte, file de pui pane, varză chinezească, morcovi, daikon, sos aioli, tonkatsu, susan" },
+      { id: 12, category: "Aperitive & Gustări", name: "Gyoza", price: 130, ingredients: "Gyoza cu pui și creveți, bucăți de chili, ceapă verde, sos signature" },
+      { id: 13, category: "Aperitive & Gustări", name: "Pork BaoZi", price: 90, ingredients: "Chiflă aburită cu carne tocată de porc, usturoi, ghimbir, gochugaru, sos de stridii, ceapă verde" },
+      { id: 14, category: "Aperitive & Gustări", name: "Varză KimChi", price: 80, ingredients: "Varză chinezească fermentată picantă" },
+      { id: 15, category: "Aperitive & Gustări", name: "Sunomono", price: 80, ingredients: "Castraveți marinați în stil japonez cu ulei de susan, usturoi, chili, oțet de orez" },
+      { id: 16, category: "Aperitive & Gustări", name: "Boabe Edamame", price: 95, ingredients: "Fasole soia edamame prăjită cu sare de mare" },
+      { id: 17, category: "Aperitive & Gustări", name: "Shiitake Murat", price: 95, ingredients: "Ciuperci shiitake marinate în stil asiatic" },
+      { id: 18, category: "Aperitive & Gustări", name: "Koko-Thai Salad", price: 110, ingredients: "Salată cu dressing dulce-iute de cocos, spanac, morcov, cherry kimchi, avocado, castravete, caju" },
+      { id: 19, category: "Aperitive & Gustări", name: "Kyuri Salmon", price: 170, ingredients: "Somon proaspăt, castravete, coriandru, lime, icre tobiko" },
+
+      // FELURI PRINCIPALE & BOWLS
+      { id: 20, category: "Feluri Principale", name: "Katsudon", price: 170, ingredients: "Pui pane crocant, orez, ou, roșii cherry kimchi, ceapă sotată în soia, ceapă verde, susan, sos aioli" },
+      { id: 21, category: "Feluri Principale", name: "Ebi Mazemen", price: 180, ingredients: "Tăiței trași la tigaie cu creveți și shiitake, spanac, sos thai-mix cu worcester și kimchi, gălbenuș marinat" },
+      { id: 22, category: "Feluri Principale", name: "Duck with Noodles", price: 210, ingredients: "File de rață, cremă de brânză și avocado, tăiței cu ou în sos Thi Mix, teriyaki, lăstari de mazăre" },
+      { id: 23, category: "Feluri Principale", name: "Gyuniku Tsukemen", price: 250, ingredients: "Tăiței serviți separat cu sos dens și aromat de vită pentru scufundare" },
+      { id: 24, category: "Feluri Principale", name: "Yasai Mushi Sake", price: 280, ingredients: "Somon la abur cu broccoli, conopidă, cherry kimchi, sos teriyaki, susan" },
+      { id: 25, category: "Feluri Principale", name: "Gyuniku Mini Steak", price: 320, ingredients: "Steak Ribeye maturat uscat, sos mayo-teriyaki, usturoi, susan" },
+
+      // DESERTURI
+      { id: 26, category: "Deserturi", name: "Cheesecake Japonez", price: 110, ingredients: "Cheesecake pufos cu sos Kinder, bucăți de mango proaspăt și mentă" },
+      { id: 27, category: "Deserturi", name: "Strawberry Sando", price: 130, ingredients: "Sandwich desert pe pâine cu lapte, căpșuni proaspete, frișcă și cremă de brânză" },
+      { id: 28, category: "Deserturi", name: "Mochi Tiramisu", price: 100, ingredients: "Ganache de ciocolată albă cu mascarpone și strat fin de cacao" },
+
+      // BĂUTURI & ALCOOL
+      { id: 29, category: "Băuturi", name: "Coca Cola / Zero (330ml)", price: 40, ingredients: "Răcoritoare carbogazoasă" },
+      { id: 30, category: "Băuturi", name: "San Pellegrino (750ml)", price: 100, ingredients: "Apă minerală natural carbogazoasă" },
+      { id: 31, category: "Băuturi", name: "Kombucha Captain", price: 100, ingredients: "Băutură fermentată bio" },
+      { id: 32, category: "Băuturi", name: "Litra Craft Beer (Diverse)", price: 80, ingredients: "Bere artizanală locală (Hefeweissbier / Vienna Lager)" },
+      { id: 33, category: "Băuturi", name: "Fáutor Vin (Sticlă)", price: 350, ingredients: "Fetească Neagră / Albarino / Vivienne Cuvée" }
+    ];
+
+    /* =========================================================
+       3. STATE MANAGEMENT
+       ========================================================= */
+    let currentCategory = "Toate";
+    let searchQuery = "";
+    // Cart structure: { [itemId]: { item: MenuItem, quantity: number, notes: string } }
+    let cart = {};
+    let tg = window.Telegram?.WebApp;
+
+    /* =========================================================
+       4. INITIALIZATION
+       ========================================================= */
+    document.addEventListener("DOMContentLoaded", () => {
+      // Initialize Telegram WebApp features if available
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        // Extract waiter name if available from Telegram user
+        if (tg.initDataUnsafe?.user) {
+          const user = tg.initDataUnsafe.user;
+          const name = user.first_name + (user.last_name ? ` ${user.last_name}` : "") + (user.username ? ` (@${user.username})` : "");
+          if (!WAITER_NAME) {
+            WAITER_NAME = name;
+            localStorage.setItem("sayhi_waiter_name", WAITER_NAME);
+          }
+        }
+      }
+
+      updateWaiterDisplay();
+      initEventListeners();
+      renderMenu();
+      updateCartUI();
+      lucide.createIcons();
+    });
+
+    function triggerHaptic(type = 'light') {
+      try {
+        if (tg && tg.HapticFeedback) {
+          if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+          else if (type === 'warning') tg.HapticFeedback.notificationOccurred('warning');
+          else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+          else tg.HapticFeedback.impactOccurred(type);
+        }
+      } catch (e) {
+        // Fallback or unsupported
+      }
+    }
+
+    function updateWaiterDisplay() {
+      const badge = document.getElementById("waiter-badge");
+      if (WAITER_NAME) {
+        badge.textContent = `Ospătar: ${WAITER_NAME}`;
+      } else {
+        badge.textContent = "Ospătar: Mobil";
+      }
+    }
+
+    function initEventListeners() {
+      const searchInput = document.getElementById("search-input");
+      const clearSearchBtn = document.getElementById("clear-search-btn");
+      const tableInput = document.getElementById("table-input");
+      const clearTableBtn = document.getElementById("clear-table-btn");
+
+      // Search input handler
+      searchInput.addEventListener("input", (e) => {
+        searchQuery = e.target.value;
+        if (searchQuery.trim().length > 0) {
+          clearSearchBtn.classList.remove("hidden");
+        } else {
+          clearSearchBtn.classList.add("hidden");
+        }
+        renderMenu();
+      });
+
+      // Table input handler
+      tableInput.addEventListener("input", (e) => {
+        if (e.target.value.trim().length > 0) {
+          clearTableBtn.classList.remove("hidden");
+        } else {
+          clearTableBtn.classList.add("hidden");
+        }
+        updateDrawerTableName();
+      });
+    }
+
+    /* Diacritics normalization for smart searching */
+    function normalizeStr(str) {
+      return (str || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    /* =========================================================
+       5. TABLE SELECTION LOGIC
+       ========================================================= */
+    function setTable(tableName) {
+      const input = document.getElementById("table-input");
+      input.value = tableName;
+      document.getElementById("clear-table-btn").classList.remove("hidden");
+      triggerHaptic('light');
+      updateDrawerTableName();
+      showToast(`📍 Setat: ${tableName}`);
+    }
+
+    function clearTableInput() {
+      const input = document.getElementById("table-input");
+      input.value = "";
+      document.getElementById("clear-table-btn").classList.add("hidden");
+      input.focus();
+      updateDrawerTableName();
+    }
+
+    function updateDrawerTableName() {
+      const tableVal = document.getElementById("table-input").value.trim();
+      const drawerTable = document.getElementById("drawer-table-name");
+      drawerTable.textContent = tableVal ? `Masă: ${tableVal}` : "Masă: Nespecificată";
+    }
+
+    /* =========================================================
+       6. CATEGORY & SEARCH FILTERING
+       ========================================================= */
+    function filterCategory(cat) {
+      currentCategory = cat;
+      triggerHaptic('light');
+
+      // Update tabs styling
+      document.querySelectorAll(".cat-tab").forEach(tab => {
+        if (tab.dataset.cat === cat) {
+          tab.classList.remove("bg-slate-800", "text-slate-300");
+          tab.classList.add("bg-brand-500", "text-white", "shadow-md", "shadow-brand-500/20");
+        } else {
+          tab.classList.add("bg-slate-800", "text-slate-300");
+          tab.classList.remove("bg-brand-500", "text-white", "shadow-md", "shadow-brand-500/20");
+        }
+      });
+
+      renderMenu();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById("search-input");
+      input.value = "";
+      searchQuery = "";
+      document.getElementById("clear-search-btn").classList.add("hidden");
+      renderMenu();
+      input.focus();
+    }
+
+    /* =========================================================
+       7. MENU RENDERING
+       ========================================================= */
+    function renderMenu() {
+      const menuList = document.getElementById("menu-list");
+      const emptyState = document.getElementById("empty-state");
+      const sectionTitle = document.getElementById("section-title");
+      const itemsCount = document.getElementById("items-count");
+      const searchIndicator = document.getElementById("search-indicator");
+
+      const normalizedQuery = normalizeStr(searchQuery.trim());
+      const isSearching = normalizedQuery.length > 0;
+
+      if (isSearching) {
+        searchIndicator.classList.remove("hidden");
+        sectionTitle.querySelector("span:first-child").textContent = `Căutare: "${searchQuery}"`;
+      } else {
+        searchIndicator.classList.add("hidden");
+        sectionTitle.querySelector("span:first-child").textContent = currentCategory === "Toate" ? "Toate Preparatele" : currentCategory;
+      }
+
+      // Filter items
+      const filtered = menu.filter(item => {
+        // Category filter
+        const matchCategory = currentCategory === "Toate" || item.category === currentCategory;
+        if (!isSearching) return matchCategory;
+
+        // Smart search across name, ingredients, and category
+        const matchName = normalizeStr(item.name).includes(normalizedQuery);
+        const matchIngredients = normalizeStr(item.ingredients).includes(normalizedQuery);
+        const matchCatName = normalizeStr(item.category).includes(normalizedQuery);
+
+        return matchName || matchIngredients || matchCatName;
+      });
+
+      itemsCount.textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        menuList.innerHTML = "";
+        emptyState.classList.remove("hidden");
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+
+      let html = "";
+      filtered.forEach(item => {
+        const inCartQty = cart[item.id] ? cart[item.id].quantity : 0;
+        
+        // Category Badge Colors
+        let badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+        if (item.category.includes("Ramen")) badgeColor = "bg-orange-500/15 text-orange-400 border-orange-500/30";
+        else if (item.category.includes("Aperitive")) badgeColor = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+        else if (item.category.includes("Feluri")) badgeColor = "bg-sky-500/15 text-sky-400 border-sky-500/30";
+        else if (item.category.includes("Deserturi")) badgeColor = "bg-pink-500/15 text-pink-400 border-pink-500/30";
+        else if (item.category.includes("Băuturi")) badgeColor = "bg-purple-500/15 text-purple-400 border-purple-500/30";
+
+        // Highlight matched keywords if searching
+        let displayedName = escapeHtml(item.name);
+        let displayedIngredients = escapeHtml(item.ingredients);
+        
+        if (isSearching && normalizedQuery.length >= 2) {
+          displayedName = highlightText(item.name, searchQuery);
+          displayedIngredients = highlightText(item.ingredients, searchQuery);
+        }
+
+        html += `
+          <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-3.5 shadow-md transition-all active:bg-slate-800/60 relative overflow-hidden group">
+            
+            ${inCartQty > 0 ? `
+              <div class="absolute top-0 right-0 bg-brand-500 text-white text-[11px] font-black px-2.5 py-0.5 rounded-bl-xl shadow-sm flex items-center gap-1">
+                <span>${inCartQty} în comandă</span>
+              </div>
+            ` : ''}
+
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 pr-2 cursor-pointer" onclick="handleItemClick(${item.id})">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${badgeColor}">
+                    ${item.category}
+                  </span>
+                </div>
+                
+                <h3 class="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                  ${displayedName}
+                </h3>
+
+                <p class="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                  ${displayedIngredients}
+                </p>
+              </div>
+
+              <!-- Price & Quick Add Button -->
+              <div class="flex flex-col items-end justify-between shrink-0 self-stretch">
+                <div class="text-right">
+                  <span class="text-base font-black text-amber-400 whitespace-nowrap">${item.price} MDL</span>
+                </div>
+
+                <div class="flex items-center gap-1.5 mt-2">
+                  ${inCartQty > 0 ? `
+                    <button onclick="decrementItem(${item.id})" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center active:scale-90 transition-all border border-slate-700">
+                      <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <span class="w-5 text-center font-bold text-xs text-white">${inCartQty}</span>
+                  ` : ''}
+
+                  <button onclick="addToCart(${item.id})" class="w-9 h-9 rounded-xl bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center shadow-md shadow-brand-600/30 active:scale-90 transition-all font-bold">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        `;
+      });
+
+      menuList.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function handleItemClick(itemId) {
+      addToCart(itemId);
+    }
+
+    function highlightText(text, search) {
+      if (!search) return escapeHtml(text);
+      const cleanSearch = search.trim();
+      if (!cleanSearch) return escapeHtml(text);
+      const regex = new RegExp(`(${cleanSearch})`, "gi");
+      return escapeHtml(text).replace(regex, '<span class="bg-amber-500/30 text-amber-200 px-0.5 rounded font-bold">$1</span>');
+    }
+
+    function escapeHtml(string) {
+      const entityMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+      return String(string).replace(/[&<>"']/g, s => entityMap[s]);
+    }
+
+    /* =========================================================
+       8. CART & ORDER LOGIC
+       ========================================================= */
+    function addToCart(itemId, customNote = "") {
+      const item = menu.find(m => m.id === itemId);
+      if (!item) return;
+
+      if (!cart[itemId]) {
+        cart[itemId] = {
+          item: item,
+          quantity: 1,
+          notes: customNote
+        };
+      } else {
+        cart[itemId].quantity += 1;
+      }
+
+      triggerHaptic('medium');
+      showToast(`+1 ${item.name} adăugat`);
+      
+      // If adding from search, auto-clear search bar so waiter can continue or see whole menu
+      if (searchQuery.trim().length > 0) {
+        // Clear search to prepare for next action
+        clearSearch();
+      } else {
+        renderMenu();
+      }
+
+      updateCartUI();
+    }
+
+    function decrementItem(itemId) {
+      if (!cart[itemId]) return;
+      
+      triggerHaptic('light');
+      if (cart[itemId].quantity > 1) {
+        cart[itemId].quantity -= 1;
+      } else {
+        delete cart[itemId];
+      }
+
+      renderMenu();
+      updateCartUI();
+      renderCartDrawerItems();
+    }
+
+    function removeItemFromCart(itemId) {
+      if (cart[itemId]) {
+        triggerHaptic('warning');
+        const itemName = cart[itemId].item.name;
+        delete cart[itemId];
+        showToast(`🗑️ ${itemName} șters din comandă`);
+        renderMenu();
+        updateCartUI();
+        renderCartDrawerItems();
+      }
+    }
+
+    function updateItemNote(itemId, noteValue) {
+      if (cart[itemId]) {
+        cart[itemId].notes = noteValue;
+      }
+    }
+
+    function appendQuickModifier(itemId, modifierText) {
+      if (!cart[itemId]) return;
+      triggerHaptic('light');
+      let current = cart[itemId].notes ? cart[itemId].notes.trim() : "";
+      if (current.length > 0 && !current.includes(modifierText)) {
+        current += `, ${modifierText}`;
+      } else if (!current.includes(modifierText)) {
+        current = modifierText;
+      }
+      cart[itemId].notes = current;
+      renderCartDrawerItems();
+    }
+
+    function confirmResetOrder() {
+      const totalItems = Object.values(cart).reduce((sum, c) => sum + c.quantity, 0);
+      if (totalItems === 0) {
+        showToast("Comanda este deja goală!");
+        return;
+      }
+
+      if (confirm("Sigur vrei să resetezi toată comanda curentă?")) {
+        triggerHaptic('warning');
+        cart = {};
+        document.getElementById("general-note").value = "";
+        showToast("Comandă resetată!");
+        renderMenu();
+        updateCartUI();
+        closeCartDrawer();
+      }
+    }
+
+    function updateCartUI() {
+      const totalQty = Object.values(cart).reduce((sum, c) => sum + c.quantity, 0);
+      const totalPrice = Object.values(cart).reduce((sum, c) => sum + (c.item.price * c.quantity), 0);
+
+      // Update Bottom Bar
+      document.getElementById("cart-badge-count").textContent = totalQty;
+      document.getElementById("cart-total-price").textContent = `${totalPrice} MDL`;
+
+      // Update Drawer Summary
+      document.getElementById("drawer-total-qty").textContent = `${totalQty} buc`;
+      document.getElementById("drawer-total-price").textContent = `${totalPrice} MDL`;
+
+      // Update fast send button state
+      const fastSendBtn = document.getElementById("btn-fast-send");
+      if (totalQty > 0) {
+        fastSendBtn.classList.remove("opacity-50", "pointer-events-none");
+      } else {
+        fastSendBtn.classList.add("opacity-50", "pointer-events-none");
+      }
+    }
+
+    /* =========================================================
+       9. CART DRAWER MODAL RENDERING
+       ========================================================= */
+    function openCartDrawer() {
+      triggerHaptic('light');
+      updateDrawerTableName();
+      renderCartDrawerItems();
+
+      const modal = document.getElementById("cart-modal");
+      const drawer = document.getElementById("cart-drawer");
+
+      modal.classList.remove("pointer-events-none", "opacity-0");
+      drawer.classList.remove("translate-y-full");
+    }
+
+    function closeCartDrawer() {
+      const modal = document.getElementById("cart-modal");
+      const drawer = document.getElementById("cart-drawer");
+
+      drawer.classList.add("translate-y-full");
+      modal.classList.add("opacity-0");
+      setTimeout(() => {
+        modal.classList.add("pointer-events-none");
+      }, 300);
+    }
+
+    function renderCartDrawerItems() {
+      const container = document.getElementById("cart-items-container");
+      const emptyView = document.getElementById("cart-empty-view");
+      const items = Object.values(cart);
+
+      if (items.length === 0) {
+        container.innerHTML = "";
+        emptyView.classList.remove("hidden");
+        return;
+      }
+
+      emptyView.classList.add("hidden");
+
+      let html = "";
+      items.forEach(({ item, quantity, notes }) => {
+        const itemSubtotal = item.price * quantity;
+
+        html += `
+          <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-3 space-y-2.5">
+            
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1">
+                <h4 class="text-sm font-bold text-white">${escapeHtml(item.name)}</h4>
+                <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+                  <span>${item.price} MDL / buc</span>
+                  <span>•</span>
+                  <span class="font-bold text-amber-400">${itemSubtotal} MDL</span>
+                </div>
+              </div>
+
+              <!-- Quantity Controls -->
+              <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1 shrink-0">
+                <button onclick="decrementItem(${item.id})" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center active:scale-90 transition-all">
+                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                </button>
+                <span class="w-6 text-center text-xs font-black text-white">${quantity}</span>
+                <button onclick="addToCart(${item.id})" class="w-7 h-7 rounded-lg bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center active:scale-90 transition-all">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="removeItemFromCart(${item.id})" class="w-7 h-7 rounded-lg bg-red-950/60 hover:bg-red-800 text-red-400 hover:text-white flex items-center justify-center active:scale-90 transition-all ml-1" title="Șterge">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Product Notes / Modifiers -->
+            <div class="space-y-1.5 pt-1 border-t border-slate-700/50">
+              <div class="relative">
+                <input type="text" value="${escapeHtml(notes || '')}" onchange="updateItemNote(${item.id}, this.value)"
+                       placeholder="Note preparat (ex: fără ceapă, sos separat, picant...)"
+                       class="w-full px-2.5 py-1.5 bg-slate-900 text-xs text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 placeholder-slate-500">
+              </div>
+
+              <!-- Fast Modifier Quick Tags -->
+              <div class="flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px]">
+                <button onclick="appendQuickModifier(${item.id}, 'Fără ceapă verde')" class="px-2 py-0.5 rounded-md bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap border border-slate-700/60">+ Fără ceapă</button>
+                <button onclick="appendQuickModifier(${item.id}, 'Fără coriandru')" class="px-2 py-0.5 rounded-md bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap border border-slate-700/60">+ Fără coriandru</button>
+                <button onclick="appendQuickModifier(${item.id}, 'Sos separat')" class="px-2 py-0.5 rounded-md bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap border border-slate-700/60">+ Sos separat</button>
+                <button onclick="appendQuickModifier(${item.id}, 'Extra picant 🌶️')" class="px-2 py-0.5 rounded-md bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap border border-slate-700/60">+ Extra picant</button>
+                <button onclick="appendQuickModifier(${item.id}, 'Fără gheață')" class="px-2 py-0.5 rounded-md bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap border border-slate-700/60">+ Fără gheață</button>
+              </div>
+            </div>
+
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    /* =========================================================
+       10. TELEGRAM ORDER SENDING (Direct API)
+       ========================================================= */
+    function handleDirectSend() {
+      // Validate table
+      const tableVal = document.getElementById("table-input").value.trim();
+      const totalQty = Object.values(cart).reduce((sum, c) => sum + c.quantity, 0);
+
+      if (!tableVal) {
+        triggerHaptic('error');
+        showToast("⚠️ Te rog specifică masa / locația!");
+        const tableInput = document.getElementById("table-input");
+        tableInput.focus();
+        tableInput.classList.add("ring-2", "ring-red-500");
+        setTimeout(() => tableInput.classList.remove("ring-2", "ring-red-500"), 2000);
+        return;
+      }
+
+      if (totalQty === 0) {
+        triggerHaptic('error');
+        showToast("⚠️ Adaugă cel puțin un produs în comandă!");
+        return;
+      }
+
+      // Open drawer so waiter can review and submit
+      openCartDrawer();
+    }
+
+    async function submitOrderToTelegram() {
+      const tableVal = document.getElementById("table-input").value.trim();
+      const generalNote = document.getElementById("general-note").value.trim();
+      const items = Object.values(cart);
+      const totalQty = items.reduce((sum, c) => sum + c.quantity, 0);
+      const totalPrice = items.reduce((sum, c) => sum + (c.item.price * c.quantity), 0);
+
+      if (!tableVal) {
+        triggerHaptic('error');
+        alert("Te rog specifică numărul mesei sau zona (ex: Masa 3, Terasa 1, Bar 2)!");
+        document.getElementById("table-input").focus();
+        return;
+      }
+
+      if (items.length === 0) {
+        triggerHaptic('error');
+        alert("Comanda este goală! Adaugă produse din meniu.");
+        return;
+      }
+
+      // Check if bot config is present
+      if (!activeBotToken || activeBotToken === "PUNE_AICI_BOT_TOKEN" || !activeChatId || activeChatId === "PUNE_AICI_CHAT_ID") {
+        triggerHaptic('warning');
+        alert("Atenție: Nu ai configurat încă Bot Token sau Chat ID-ul Telegram!\n\nDeschid acum fereastra de setări pentru a le introduce.");
+        toggleSettingsModal(true);
+        return;
+      }
+
+      // Format current timestamp (Local time in Chișinău/Romania)
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+      // Build Beautiful Telegram HTML message
+      let message = `🍜 <b>COMANDĂ NOUĂ — SayHi Ramen Bar</b>\n`;
+      message += `📍 <b>Locație / Masă:</b> <code>${escapeHtml(tableVal)}</code>\n`;
+      if (WAITER_NAME) {
+        message += `👤 <b>Ospătar:</b> ${escapeHtml(WAITER_NAME)}\n`;
+      }
+      message += `🕒 <b>Ora trimiterii:</b> ${dateStr} la ${timeStr}\n`;
+      message += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+      message += `📋 <b>PRODUSE COMANDATE:</b>\n`;
+
+      let summaryDetailsHtml = "";
+
+      items.forEach(({ item, quantity, notes }, index) => {
+        const itemTotal = item.price * quantity;
+        message += `\n${index + 1}️⃣ <b>${quantity}x ${escapeHtml(item.name)}</b> — ${itemTotal} MDL`;
+        if (notes && notes.trim().length > 0) {
+          message += `\n   ↳ <i>Notă: ${escapeHtml(notes.trim())}</i>`;
+        }
+
+        summaryDetailsHtml += `
+          <div class="flex justify-between">
+            <span>${quantity}x ${escapeHtml(item.name)}</span>
+            <span class="font-bold text-amber-300">${itemTotal} MDL</span>
+          </div>
+          ${notes ? `<div class="text-[10px] text-slate-400 pl-3">↳ ${escapeHtml(notes)}</div>` : ''}
+        `;
+      });
+
+      message += `\n\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      message += `💰 <b>TOTAL DE PLATĂ: ${totalPrice} MDL</b>\n`;
+      if (generalNote) {
+        message += `📝 <b>Notă generală:</b> <i>${escapeHtml(generalNote)}</i>\n`;
+        summaryDetailsHtml += `<div class="pt-1 text-[11px] text-amber-200 border-t border-slate-700">Notă: ${escapeHtml(generalNote)}</div>`;
+      }
+      message += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+      message += `⚡ <i>Trimis prin SayHi Waiter App</i>`;
+
+      // Loading state on button
+      const submitBtn = document.getElementById("btn-submit-order");
+      const originalBtnHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <span>Se trimite comanda...</span>
+      `;
+
+      try {
+        const telegramUrl = `https://api.telegram.org/bot${activeBotToken}/sendMessage`;
+        const response = await fetch(telegramUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chat_id: activeChatId,
+            text: message,
+            parse_mode: "HTML",
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+          triggerHaptic('success');
+          closeCartDrawer();
+
+          // Show success modal
+          document.getElementById("success-summary").textContent = `Comanda pentru ${tableVal} a fost transmisă cu succes (${totalPrice} MDL).`;
+          document.getElementById("success-details-box").innerHTML = summaryDetailsHtml;
+          
+          const successModal = document.getElementById("success-modal");
+          successModal.classList.remove("pointer-events-none", "opacity-0");
+
+          // Reset order state for the next table
+          cart = {};
+          document.getElementById("general-note").value = "";
+          document.getElementById("table-input").value = "";
+          document.getElementById("clear-table-btn").classList.add("hidden");
+          renderMenu();
+          updateCartUI();
+        } else {
+          throw new Error(data.description || "Eroare la trimiterea mesajului pe Telegram");
+        }
+      } catch (err) {
+        triggerHaptic('error');
+        console.error("Eroare trimitere Telegram:", err);
+        alert(`Eroare la trimiterea comenzii:\n${err.message}\n\nVerifică Bot Token-ul și Chat ID-ul din setări.`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+        lucide.createIcons();
+      }
+    }
+
+    function dismissSuccessModal() {
+      const successModal = document.getElementById("success-modal");
+      successModal.classList.add("opacity-0");
+      setTimeout(() => {
+        successModal.classList.add("pointer-events-none");
+      }, 300);
+    }
+
+    /* =========================================================
+       11. SETTINGS MODAL (BOT TOKEN & CHAT ID)
+       ========================================================= */
+    function toggleSettingsModal(show) {
+      const modal = document.getElementById("settings-modal");
+      if (show) {
+        document.getElementById("cfg-bot-token").value = activeBotToken === BOT_TOKEN ? "" : activeBotToken;
+        document.getElementById("cfg-chat-id").value = activeChatId === CHAT_ID ? "" : activeChatId;
+        document.getElementById("cfg-waiter-name").value = WAITER_NAME;
+        modal.classList.remove("pointer-events-none", "opacity-0");
+      } else {
+        modal.classList.add("opacity-0");
+        setTimeout(() => modal.classList.add("pointer-events-none"), 300);
+      }
+    }
+
+    function saveTelegramSettings() {
+      const token = document.getElementById("cfg-bot-token").value.trim();
+      const chat = document.getElementById("cfg-chat-id").value.trim();
+      const waiter = document.getElementById("cfg-waiter-name").value.trim();
+
+      if (token) {
+        activeBotToken = token;
+        localStorage.setItem("sayhi_bot_token", token);
+      }
+      if (chat) {
+        activeChatId = chat;
+        localStorage.setItem("sayhi_chat_id", chat);
+      }
+      WAITER_NAME = waiter;
+      localStorage.setItem("sayhi_waiter_name", waiter);
+
+      updateWaiterDisplay();
+      triggerHaptic('success');
+      showToast("Setări salvate cu succes!");
+      toggleSettingsModal(false);
+    }
+
+    /* =========================================================
+       12. TOAST NOTIFICATIONS
+       ========================================================= */
+    let toastTimeout;
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      const toastMsg = document.getElementById("toast-msg");
+      toastMsg.textContent = message;
+
+      toast.classList.remove("opacity-0", "translate-y-[-10px]", "pointer-events-none");
+      toast.classList.add("opacity-100", "translate-y-0");
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-[-10px]", "pointer-events-none");
+      }, 1600);
+    }
+
+  </script>
+</body>
+</html>
