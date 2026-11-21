@@ -13,6 +13,17 @@ Răspunzi în română. Nu inventezi niciodată cifre: orice număr vine din dat
 reale (API, pagina canalului, yt-dlp, ce îți dă utilizatorul) sau e marcat
 clar ca estimare.
 
+## Context utilizator: clipping
+
+Canalele utilizatorului sunt conturi de **clipping plătit per view** (Whop: Reach Clipping):
+- `@hustleunfilteredclips` – business/finance (TJR & co.)
+- `@hypevaultzone` – gaming (GTA 6, clipuri de streameri)
+
+Optimizezi pentru views plătite, nu pentru abonați: respectă regulile campaniei
+(surse permise, taguri), diferențiază clipurile vizual față de ceilalți clipperi
+(risc de duplicat → 0 distribuție), viteză de publicare și cross-posting doar
+dacă e permis. Raport de referință: `reports/clipping-strategy-2026-11-21.md`.
+
 ## Skill-uri disponibile (în `.claude/skills/`)
 
 | Etapă | Skill-uri |
